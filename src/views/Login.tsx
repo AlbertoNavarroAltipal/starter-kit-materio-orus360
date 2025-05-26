@@ -15,9 +15,11 @@ import Checkbox from '@mui/material/Checkbox'
 import Button from '@mui/material/Button'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Divider from '@mui/material/Divider'
+import CircularProgress from '@mui/material/CircularProgress'
 
 // Third-party Imports
 import classnames from 'classnames'
+import { useAuth } from 'react-oidc-context'
 
 // Type Imports
 import type { Mode } from '@core/types'
@@ -37,6 +39,9 @@ import { useSettings } from '@core/hooks/useSettings'
 const LoginV2 = ({ mode }: { mode: Mode }) => {
   // States
   const [isPasswordShown, setIsPasswordShown] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   // Vars
   const darkImg = '/images/pages/auth-v2-mask-dark.png'
@@ -49,6 +54,7 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
   // Hooks
   const router = useRouter()
   const { settings } = useSettings()
+  const auth = useAuth()
   const authBackground = useImageVariant(mode, lightImg, darkImg)
 
   const characterIllustration = useImageVariant(
@@ -60,6 +66,60 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
   )
 
   const handleClickShowPassword = () => setIsPasswordShown(show => !show)
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    // Iniciar sesión con Cognito
+    auth.signinRedirect()
+  }
+
+  // Función para cerrar sesión (se utilizará en UserDropdown)
+  // const handleSignOut = () => {
+  //   const clientId = '31ttf8p3gdm9umcpv3krvcf7jg'
+  //   const logoutUri = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'http://localhost:3000/login'
+  //   const cognitoDomain = 'https://us-east-1yb2r3qf9j.auth.us-east-1.amazoncognito.com'
+
+  //   if (typeof window !== 'undefined') {
+  //     window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`
+  //   }
+  // }
+
+  // Si está cargando la autenticación
+  if (auth.isLoading) {
+    return (
+      <div className='flex justify-center items-center min-bs-[100dvh]'>
+        <CircularProgress />
+      </div>
+    )
+  }
+
+  // Si hay un error de autenticación
+  if (auth.error) {
+    return (
+      <div className='flex justify-center items-center min-bs-[100dvh] flex-col gap-4'>
+        <Typography variant='h6' color='error'>
+          Error de autenticación
+        </Typography>
+        <Typography>{auth.error.message}</Typography>
+        <Button variant='contained' onClick={() => auth.signinRedirect()}>
+          Intentar nuevamente
+        </Button>
+      </div>
+    )
+  }
+
+  // Si el usuario ya está autenticado
+  if (auth.isAuthenticated) {
+    router.push('/home')
+
+    return (
+      <div className='flex justify-center items-center min-bs-[100dvh]'>
+        <CircularProgress />
+      </div>
+    )
+  }
 
   return (
     <div className='flex bs-full justify-center'>
@@ -98,20 +158,14 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             <Typography variant='h4'>{`Welcome to ${themeConfig.templateName}!👋🏻`}</Typography>
             <Typography className='mbs-1'>Please sign-in to your account and start the adventure</Typography>
           </div>
-          <form
-            noValidate
-            autoComplete='off'
-            onSubmit={e => {
-              e.preventDefault()
-              router.push('/')
-            }}
-            className='flex flex-col gap-5'
-          >
-            <TextField autoFocus fullWidth label='Email' />
+          <form noValidate autoComplete='off' onSubmit={handleLogin} className='flex flex-col gap-5'>
+            <TextField autoFocus fullWidth label='Email' value={email} onChange={e => setEmail(e.target.value)} />
             <TextField
               fullWidth
               label='Password'
               type={isPasswordShown ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position='end'>
@@ -128,8 +182,8 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
                 Forgot password?
               </Typography>
             </div>
-            <Button fullWidth variant='contained' type='submit'>
-              Log In
+            <Button fullWidth variant='contained' type='submit' disabled={isLoading}>
+              {isLoading ? <CircularProgress size={24} color='inherit' /> : 'Log In'}
             </Button>
             <div className='flex justify-center items-center flex-wrap gap-2'>
               <Typography>New on our platform?</Typography>
@@ -139,18 +193,14 @@ const LoginV2 = ({ mode }: { mode: Mode }) => {
             </div>
             <Divider className='gap-3'>or</Divider>
             <div className='flex justify-center items-center gap-2'>
-              <IconButton className='text-facebook'>
-                <i className='ri-facebook-fill' />
-              </IconButton>
-              <IconButton className='text-twitter'>
-                <i className='ri-twitter-fill' />
-              </IconButton>
-              <IconButton className='text-github'>
-                <i className='ri-github-fill' />
-              </IconButton>
-              <IconButton className='text-googlePlus'>
-                <i className='ri-google-line' />
-              </IconButton>
+              <Button
+                fullWidth
+                variant='outlined'
+                onClick={() => auth.signinRedirect()}
+                startIcon={<i className='ri-google-line' />}
+              >
+                Sign in with Cognito
+              </Button>
             </div>
           </form>
         </div>

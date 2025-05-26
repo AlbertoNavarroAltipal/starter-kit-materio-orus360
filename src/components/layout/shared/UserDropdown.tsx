@@ -43,7 +43,6 @@ const UserDropdown = () => {
 
   // Hooks
   const router = useRouter()
-
   const { settings } = useSettings()
 
   const handleDropdownOpen = () => {
@@ -63,8 +62,14 @@ const UserDropdown = () => {
   }
 
   const handleUserLogout = async () => {
-    // Redirect to login page
-    router.push('/login')
+    // Cerrar sesión con Cognito
+    const clientId = '31ttf8p3gdm9umcpv3krvcf7jg'
+    const logoutUri = typeof window !== 'undefined' ? `${window.location.origin}/login` : 'http://localhost:3000/login'
+    const cognitoDomain = 'https://us-east-1yb2r3qf9j.auth.us-east-1.amazoncognito.com'
+
+    if (typeof window !== 'undefined') {
+      window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`
+    }
   }
 
   return (
